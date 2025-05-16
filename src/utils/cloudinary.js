@@ -1,5 +1,5 @@
 import { v2 as cloudinary} from "cloudinary";
-import fs from fs;//? perform read and write on files(delete, update etc.)
+import fs from "fs"//? perform read and write on files(delete, update etc.)
 
 cloudinary.config({ 
     cloud_name: process.env.CLOUDINARY_CLOUD, 

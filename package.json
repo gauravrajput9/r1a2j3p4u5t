@@ -26,5 +26,13 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/r1a2j3p4u5t/r1a2j3p4u5t.git"
+  },
+  "bugs": {
+    "url": "https://github.com/r1a2j3p4u5t/r1a2j3p4u5t/issues"
+  },
+  "homepage": "https://github.com/r1a2j3p4u5t/r1a2j3p4u5t#readme"
 }
