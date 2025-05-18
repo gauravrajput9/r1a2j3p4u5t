@@ -1,81 +1,14 @@
-// import mongoose from "mongoose";
-import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
+
 import connectDB from "./db/index.js";
 import app from "./app.js";
 
-
-dotenv.config();
-
-
-
-
-//? second method to connect db and env variables
-dotenv.config({
-    path : "./env",
-})
+console.log(process.env.CLOUDINARY_API_KEY)
 connectDB()
-.then(() =>{
+  .then(() => {
     const port = process.env.PORT || 3001;
-    app.listen(port, () =>{
-        console.log(`🚀 Server is running at: http://localhost:${port}`);
-    })
-})
-
-// const app = express();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//? first approch to connect database;;;;;;;;
-// (async () => {
-//   try {
-//     const mongoUri = process.env.MONGO_DB;
-//     const port = process.env.PORT || 3000;
-
-//     if (!mongoUri) throw new Error("MONGO_DB URI not defined in environment variables.");
-
-//     await mongoose.connect(mongoUri);
-//     console.log("✅ Connected to MongoDB");
-
-//     app.on("error", (error) => {
-//       console.error("❌ App error:", error);
-//     });
-
-//     app.listen(port, () => {
-//       console.log(`🚀 Server is running at: http://localhost:${port}`);
-//     });
-
-//   } catch (error) {
-//     console.error("❌ Failed to start server:", error);
-//   }
-// })();
+    app.listen(port, () => {
+      console.log(`🚀 Server is running at: http://localhost:${port}`);
+    });
+  });

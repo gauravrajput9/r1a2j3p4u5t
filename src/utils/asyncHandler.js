@@ -1,10 +1,12 @@
 export const asyncHandler = (fn) => {
     return (req, res, next) => {
         Promise.resolve(fn(req, res, next)).catch((err) => {
-            res.status(err.code || 500).json({
+            const status = typeof err.statusCode === 'number' ? err.statusCode : 500;
+
+            res.status(status).json({
                 success: false,
-                message: err.message,
+                message: err.message || "Internal Server Error",
             });
         });
-    }
-}
+    };
+};
