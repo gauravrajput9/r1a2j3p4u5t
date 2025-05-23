@@ -1,6 +1,9 @@
 import mongoose, { MongooseError, Schema } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
+
 
 
 const userSchema = new mongoose.Schema({
@@ -68,32 +71,21 @@ userSchema.methods.isPasswordCorrect = async function (password){
 
 //! injecting methods to generate refresh and access ACCESS_TOKEN_SECRET
 
-userSchema.methods.generateRefreshToken = async function () {
-    return jwt.sign(
-
-        //? less data to be sent as payload than access token
-        {
-        _id : this._id,
-    },
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    { _id: this._id, username: this.username },
     process.env.REFRESH_TOKEN_SECRET,
-    {
-        expiresIn : process.env.REFRESH_TOKEN_EXPIRY
-    }
-)}
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+  );
+};
 
-
-userSchema.methods.generateAccessToken = async function () {
-    return jwt.sign(
-
-        //? less data to be sent as payload than access token
-        {
-            _id : this._id,
-        },
+userSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
+    { _id: this._id, username: this.username },
     process.env.ACCESS_TOKEN_SECRET,
-    {
-        expiresIn : process.env.ACCESS_TOKEN_EXPIRY
-    }
-)}
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
+  );
+};
 
 export const User = mongoose.model("User", userSchema);
 

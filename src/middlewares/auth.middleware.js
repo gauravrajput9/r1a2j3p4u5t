@@ -6,26 +6,38 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 dotenv.config();
 
-// Middleware to verify JWT and attach user to req object
 export const verifyJWT = asyncHandler(async (req, res, next) => {
-  // Try getting token from cookies or Authorization header
-  const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+  try {
+    console.log("Authorization header:", req.header("Authorization"));
 
-  if (!token) {
-    throw new ApiError(401, "Unauthorized Access");
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Token not provided",
+      });
+    }
+
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token",
+      });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error("JWT Error:", error.message);
+    return res.status(401).json({
+      success: false,
+      message: error.message || "Unauthorized",
+    });
   }
-
-  // Verify token
-  const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-
-  // Fetch user by ID from decoded token, exclude sensitive fields
-  const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
-
-  if (!user) {
-    throw new ApiError(401, "Access token is Not Valid");
-  }
-
-  // Attach user to request object
-  req.user = user;
-  next();
 });
