@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/user.models.js";
-import { uploadFile } from "../utils/cloudinary.js";
+import { deleteOldImage, uploadFile } from "../utils/cloudinary.js";
 import ApiResponse from "../utils/apiResponse.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
@@ -47,8 +47,6 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   if(existedUser){
     throw new ApiError(409, "Username or Email Already Exists")
-  }else{
-    console.log("now you can register")
   }
 
   //? validations for avatar(required) and coverImage(optional)
@@ -64,9 +62,12 @@ export const registerUser = asyncHandler(async (req, res) => {
   const avatar = await uploadFile(avatarLocalFilePath);
   const coverImage = coverImageLocalFilePath ? await uploadFile(coverImageLocalFilePath) : null;
 
+
   if(!avatar || !avatar.url){
     throw new ApiError(400, "Could Not Upload Avatar Image")
   }
+
+
 
  try {
   if (fs.existsSync(avatarLocalFilePath)) {
@@ -87,7 +88,9 @@ export const registerUser = asyncHandler(async (req, res) => {
     username: username.toLowerCase(),
     fullname,
     avatar: avatar.url, 
+    avatarPublicId: avatar.public_id,
     coverImage: coverImage?.url || "",
+    coverImagePublicId: coverImage?.public_id || "",
     password: password,
     email,
     refreshToken: "", // Initialize with empty string, will be updated when user logs in
@@ -301,38 +304,54 @@ export const updateUserProfile = asyncHandler(async(req, res) =>{
 
 })
 
-export const updateUserAvatar = asyncHandler(async(req, res) =>{
 
+export const updateUserAvatar = asyncHandler(async (req, res) => {
   const avatarLocalPath = req.files?.avatar?.[0]?.path;
 
-
-  if(!avatarLocalPath){
-    throw new ApiError(400, "Avatar file not found")
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar file not found");
   }
 
+  // Get current user's avatarPublicId
+  const userBeforeUpdate = await User.findById(req.user._id).select("avatarPublicId");
+
+  if (userBeforeUpdate?.avatarPublicId) {
+    const deleted = await deleteOldImage(userBeforeUpdate.avatarPublicId);
+  }
+
+  // Upload new avatar
   const avatar = await uploadFile(avatarLocalPath);
 
-  if(!avatar.url){
-    throw new ApiError(400, "Avatar image not found(update Avatar)")
+  if (!avatar?.secure_url || !avatar?.public_id) {
+    throw new ApiError(400, "Cloudinary upload failed (update Avatar)");
   }
 
-  const user = await User.findByIdAndUpdate(
-    req.user?._id,
-    {
-      $set : {
-        avatar : avatar.url
-      }
-    },
-    {
-      new : true
+  // Delete local temp file
+  try {
+    if (fs.existsSync(avatarLocalPath)) {
+      fs.unlinkSync(avatarLocalPath);
     }
-  ).select("-password")
+  } catch (err) {
+    console.error("Error deleting local avatar file:", err.message);
+  }
 
-  return res.status(200)
-  .json(
-    new ApiResponse(200, user, "Avatar updated SuccessFully")
-  )
-})
+  // Update user document
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        avatar: avatar.secure_url,
+        avatarPublicId: avatar.public_id,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res.status(200).json(
+    new ApiResponse(200, updatedUser, "Avatar updated successfully")
+  );
+});
+
 
 export const updateCoverImage = asyncHandler(async(req, res) =>{
 
@@ -342,6 +361,14 @@ export const updateCoverImage = asyncHandler(async(req, res) =>{
     throw new ApiError(400, "Cover Image file not found")
   }
 
+  //! delete previous cover iMage
+  const coverImageBeforeUpdate = await User.findById(req.user?._id).select("coverImagePublicId")
+
+  if (coverImageBeforeUpdate?.coverImagePublicId) {
+    const deleted = await deleteOldImage(coverImageBeforeUpdate?.coverImagePublicId);
+  }
+
+  //! update the new coverImage
   const coverImage = await uploadFile(coverImageLocalPath);
 
   if(!coverImage.url){
@@ -352,7 +379,8 @@ export const updateCoverImage = asyncHandler(async(req, res) =>{
     req.user?._id,
     {
       $set : {
-        coverImage : coverImage.url
+        coverImage : coverImage.url,
+        coverImagePublicId: coverImage.public_id
       }
     },
     {

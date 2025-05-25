@@ -37,12 +37,12 @@ router.route("/updateAvatar").post(
       maxCount : 1
       }
     ]
-  ), updateUserAvatar
+  ),verifyJWT ,updateUserAvatar
 )
 
 router
   .route("/update-coverImage")
-  .post(upload.single("coverImage"), updateCoverImage);
+  .post(upload.single("coverImage"),verifyJWT, updateCoverImage);
 
 
 

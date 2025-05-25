@@ -34,9 +34,15 @@ const userSchema = new mongoose.Schema({
         type : String, //cloudinary
         required : true,
     },
+    avatarPublicId : {
+        type: String,
+    },
     coverImage : {
         type: String,
 
+    },
+      coverImagePublicId: {
+    type: String, // public_id from Cloudinary
     },
     password : {
         type : String,
