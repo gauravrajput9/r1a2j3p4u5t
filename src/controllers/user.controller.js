@@ -361,7 +361,7 @@ export const updateCoverImage = asyncHandler(async(req, res) =>{
     throw new ApiError(400, "Cover Image file not found")
   }
 
-  //! delete previous cover iMage
+  //! delete previous cover image
   const coverImageBeforeUpdate = await User.findById(req.user?._id).select("coverImagePublicId")
 
   if (coverImageBeforeUpdate?.coverImagePublicId) {
@@ -392,4 +392,74 @@ export const updateCoverImage = asyncHandler(async(req, res) =>{
   .json(
     new ApiResponse(200, user, "Cover Image updated SuccessFully")
   )
+})
+
+export const getChannelDetails = asyncHandler(async (req, res) =>{
+  const {username} = req.params;
+
+  if(!username?.trim()){
+    throw new ApiError(400, "Username not Found")
+  }
+
+  const channelDetails = await User.aggregate([
+    {
+      $match : {
+        username : username?.toLowerCase()
+      }
+    },
+    {
+      $lookup : {
+        from : "subscriptions",
+        localField : "_id",
+        foreignField: "channel",
+        as : "subscribers"
+      }
+    },
+    {
+      $lookup : {
+        from : "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as : "channelSubscribedTo"
+      }
+    },
+    {
+      $addFields: {
+        subscribersCount: { $size: "$subscribers" },
+        channelsSubscribedToCount: { $size: "$channelSubscribedTo" },
+        isSubscribed: {
+          $in: [
+            mongoose.Types.ObjectId(req.user._id),
+            {
+              $map: {
+                input: "$subscribers",
+                as: "s",
+                in: "$$s.subscriber"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      $project: {
+        username : 1,
+        fullname : 1,
+        email: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1
+      }
+    }
+  ])
+
+  if (!channelDetails?.length) {
+    throw new ApiError(400, "Channel does not Exists")
+  }
+
+  return res.status(200)
+  .json(
+    new ApiResponse(200, channelDetails[0], "Channel Details Fetched Successfully")
+  )
+
 })
